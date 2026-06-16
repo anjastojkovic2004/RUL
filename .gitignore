@@ -1,0 +1,10 @@
+venv/
+__pycache__/
+*.pkl
+data/X_train.csv
+data/X_val.csv
+data/X_test.csv
+data/y_train.csv
+data/y_val.csv
+data/y_test.csv
+__pycache__/
