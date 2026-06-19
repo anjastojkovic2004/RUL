@@ -8,24 +8,27 @@ import joblib
 
 
 def nasa_score(y_stvarni, y_predvidjeni):
+
     # NASA asimetricna funkcija gubitka razvijena specificno za C-MAPSS dataset.
     # d = predvidjeno - stvarno
     #   d < 0 -> rano predvidjanje (model kaze "jos ima vremena", a motor je blize kvaru)
     #            kazna: exp(-d/13) - 1  -> blaza kazna
     #   d > 0 -> kasno predvidjanje (model kaze "motor ce duze raditi", ali ce brze otkazati)
     #            kazna: exp(d/10) - 1   -> stroza kazna
-    # Asimetricnost je kljucna: u avioindustriji je opasnije propustiti bliski kvar
-    # nego preuranjeno zameniti deo. Zato model mora da "greši na stranu sigurnosti".
+
+
     d = y_predvidjeni - y_stvarni
     score = np.sum(np.where(d < 0, np.exp(-d / 13) - 1, np.exp(d / 10) - 1))
     return score
 
 
 def baseline_model(y_train, y_val, y_test):
+
     # Baseline model je najjednostavniji moguci pristup: uvek predvidi prosecni RUL
     # iz trening skupa, bez obzira na vrednosti senzora.
-    # Sluzi kao donja granica performansi - svaki pravi model mora biti bolji od ovoga.
-    # Ako ML model ne pobedi baseline, to znaci da ne uci nista korisno iz podataka.
+ 
+
+
     prosek = y_train.mean()
     print(f"Prosecni RUL u train skupu: {prosek:.2f}")
 
@@ -44,13 +47,10 @@ def baseline_model(y_train, y_val, y_test):
 
 
 def treniraj_xgboost(X_train, y_train, X_val, y_val):
+
     # XGBoost (eXtreme Gradient Boosting) je ansambni model zasnovan na
-    # gradijentnom pojacavanju stabala odluke. Svako novo stablo ispravlja
-    # greske prethodnog, pa model postepeno postaje precizniji.
-    # Odabran kao glavni model jer:
-    # - efikasno radi sa tabelarnim podacima
-    # - prirodno modelira nelinearne odnose izmedju senzora i RUL-a
-    # - otporan na nekorelirane senzore (automatski ih ignorise)
+    # gradijentnom pojacavanju stabala odluke.
+
     print("\nTRENING XGBOOST MODELA")
 
     model = XGBRegressor(
@@ -77,10 +77,10 @@ def treniraj_xgboost(X_train, y_train, X_val, y_val):
 
 
 def treniraj_random_forest(X_train, y_train, X_val, y_val):
+
     # Random Forest je ansambni model koji gradi veliki broj nezavisnih stabala odluke,
-    # svako na nasumicnom podskupu podataka i atributa. Finalna predikcija je prosek
-    # svih stabala, sto smanjuje varijansu i overfitting.
-    # Koristi se kao model za poredjenje sa XGBoost-om.
+    # svako na nasumicnom podskupu podataka i atributa. 
+
     print("\nTRENING RANDOM FOREST MODELA")
 
     model = RandomForestRegressor(
@@ -106,9 +106,10 @@ def treniraj_random_forest(X_train, y_train, X_val, y_val):
 
 
 def evaluiraj_na_testu(model_xgb, model_rf, X_test, y_test):
+
     # Finalna evaluacija se vrsi iskljucivo na test skupu koji model nije video
-    # tokom treninga ni validacije. Ovo je jedina pouzdana mera stvarnih performansi.
-    # Validacioni skup je korisćen samo za pracenje treninga - test skup je konacna ocena.
+    # tokom treninga ni validacije. 
+
     print("\nFINALNA EVALUACIJA NA TEST SKUPU")
 
     y_pred_xgb = model_xgb.predict(X_test)
@@ -126,8 +127,8 @@ def evaluiraj_na_testu(model_xgb, model_rf, X_test, y_test):
 
 
 def podesi_hiperpametre_xgboost(X_train, y_train):
+
     # Podesavanje hiperparametara metodom RandomizedSearchCV:
-    # Umesto da testiramo sve kombinacije (GridSearch - previse sporo),
     # nasumicno biramo 20 kombinacija iz definisanih opsega i biramo najbolju.
     # cv=3 znaci 3-fold cross-validacija: trening skup se deli na 3 dela,
     # model se trenira na 2 i validira na 1, rotacijom - pouzdanija procena od jedne podele.
@@ -137,6 +138,7 @@ def podesi_hiperpametre_xgboost(X_train, y_train):
     #   learning_rate  -> korak ucenja (manji = stabilniji, ali treba vise stabala)
     #   subsample      -> udeo podataka za svako stablo (regularizacija)
     #   colsample_bytree -> udeo atributa za svako stablo (regularizacija)
+
     print("\nPODESAVANJE HIPERPARAMETARA XGBOOST")
 
     param_grid = {
@@ -172,12 +174,14 @@ def podesi_hiperpametre_xgboost(X_train, y_train):
 
 
 def treniraj_sa_najboljim_atributima(X_train, y_train, X_val, y_val, X_test, y_test, feature_names):
-    # Odabir atributa (Feature Selection) smanjuje dimenzionalnost problema.
+
+    # Odabir atributa smanjuje dimenzionalnost problema.
     # Koristimo feature_importances_ iz vec istreniranog XGBoost modela:
     # ovaj skor meri koliko puta je svaki atribut koriscen za podelu u stablima
     # i koliko ta podela smanjuje gresku. Vise koriscen = vazniji atribut.
-    # Treniramo novi model SAMO sa top 10 najvaznijih atributa i poredimo performanse.
-    # Cilj: ako manji skup atributa daje slicne rezultate, model je robusniji i brzi.
+    # Treniramo novi model samo sa top 10 najvaznijih atributa i poredimo performanse.
+    
+
     print("\nODABIR NAJZNACAJNIJIH ATRIBUTA")
 
     model_pun = joblib.load('modeli/xgboost_model.pkl')

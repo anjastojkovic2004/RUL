@@ -5,11 +5,12 @@ import numpy as np
 
 
 def vizualizuj_rul_po_motorima(train):
+
     # Prikazuje kako RUL linearno opada kroz cikluse za prvih 5 motora.
     # Svaki motor pocinje sa razlicitim maksimalnim RUL-om (jer je cap na 125,
     # ali motori imaju razlicit broj ciklusa do kvara).
-    # Ocekivani oblik: opadajuce linije koje zavrsavaju na RUL=0 (trenutak kvara).
-    # Ovo potvrdjuje da je RUL ispravno izracunat i dataset pravilno ucitan.
+    # opadajuce linije koje zavrsavaju na RUL=0 (trenutak kvara).
+
     plt.figure(figsize=(12, 6))
 
     for motor_id in range(1, 6):
@@ -28,11 +29,10 @@ def vizualizuj_rul_po_motorima(train):
 
 
 def vizualizuj_distribuciju_rul(train):
+
     # Prikazuje distribuciju RUL vrednosti u celom trening skupu.
-    # Nakon cap-ovanja na 125, ocekujemo spike (vrh) na vrednosti 125 -
-    # to su svi ciklusi motora koji su daleko od kvara i tretirani kao "125+".
-    # Ostatak distribucije treba da bude relativno ravnomerno rasporedjen od 0 do 125.
-    # Neravnomerna distribucija bi znacila da model ima vise primera za neke RUL vrednosti.
+
+
     plt.figure(figsize=(10, 5))
 
     sns.histplot(train['RUL'], bins=50, kde=True, color='steelblue')
@@ -48,13 +48,15 @@ def vizualizuj_distribuciju_rul(train):
 
 
 def vizualizuj_korelaciju(train):
+
     # Prikazuje Pearsonovu korelaciju svakog senzora sa RUL vrednoscu.
     # Korelacija blizu -1: senzor raste kako motor stari (indikator degradacije)
     # Korelacija blizu +1: senzor opada kako motor stari
     # Korelacija blizu  0: senzor ne nosi informaciju o degradaciji
     # Crvene trake -> negativna korelacija (senzori koji rastu pri degradaciji)
     # Plave trake  -> pozitivna korelacija (senzori koji opadaju pri degradaciji)
-    # Vazno: korelacija meri LINEARNU vezu - XGBoost moze da uhvati i nelinearne veze.
+ 
+
     senzori = [kol for kol in train.columns if kol not in ['unit', 'ciklus', 'RUL']]
 
     korelacije = train[senzori + ['RUL']].corr()['RUL'].drop('RUL').sort_values()
@@ -73,13 +75,14 @@ def vizualizuj_korelaciju(train):
 
 
 def vizualizuj_senzore_tokom_vremena(train):
-    # Prikazuje kako se 4 kljucna senzora menjaju kroz cikluse na primeru Motora 1.
+
+    # Prikazuje kako se 4 kljucna senzora menjaju kroz cikluse.
     # s11, s4 (crveni) -> negativna korelacija: vrednosti rastu kako se motor kvari
     #                     fizicki: temperatura/pritisak raste pri degradaciji kompresora
     # s12, s7 (plavi)  -> pozitivna korelacija: vrednosti opadaju kako se motor kvari
     #                     fizicki: efikasnost pada pri degradaciji
-    # Ovi grafici vizuelno potvrdjuju da senzori nose signal degradacije i
-    # opravdavaju njihovu upotrebu kao ulaznih atributa modela.
+
+
     motor1 = train[train['unit'] == 1]
 
     fig, axs = plt.subplots(2, 2, figsize=(14, 8))
@@ -116,12 +119,11 @@ def vizualizuj_senzore_tokom_vremena(train):
 
 
 def vizualizuj_rul_krivu_po_ciklusima(test_orig, y_pred_xgb, motor_ids=None):
+
     # Prikazuje predvidjeni RUL u kontekstu celokupne degradacione krive motora.
-    # Test skup sadrzi prekinute serije - ne znamo tacno koliko je motor radio pre testa.
-    # Rekonstrukcija: koristimo predvidjeni finalni RUL kao pocetnu tacku i
-    # pratimo linearno opadanje kroz poznate cikluse testne serije.
-    # Crvena tacka na kraju svake krive = XGBoost predikcija za taj motor.
-    # Ovo je vizualizacija iz opisa projekta koja pokazuje "krivu degradacije".
+    # Test skup sadrzi prekinute serije ne znamo tacno koliko je motor radio pre testa.
+
+
     if motor_ids is None:
         motor_ids = [1, 2, 3, 4]
 
@@ -185,13 +187,14 @@ def vizualizuj_predikcije(y_test, y_pred_xgb, y_pred_rf):
 
 
 def vizualizuj_vaznost_atributa(model_xgb, model_rf, feature_names):
+
     # Prikazuje top 15 najvaznijih atributa za svaki model.
     # Vaznost (feature importance) meri koliko svaki atribut doprinosi
     # smanjenju greske predikcije kroz sva stabla u ansamblu.
-    # Atributi sa _roll5 sufiksom su pokretni proseci - ako su visoko rangirani,
+    # Atributi sa _roll5 sufiksom su pokretni proseci ako su visoko rangirani,
     # potvrdjuje se da glajcanje suma poboljsava predikciju.
-    # Oba modela treba da se slazu u tome koji senzori su najvazniji -
-    # to su fizicki najinformativniji indikatori degradacije kompresora.
+
+
     fig, axs = plt.subplots(1, 2, figsize=(16, 8))
     fig.suptitle('Vaznost atributa', fontsize=14)
 
@@ -214,12 +217,14 @@ def vizualizuj_vaznost_atributa(model_xgb, model_rf, feature_names):
 
 
 def vizualizuj_poredjenje_modela(rmse_xgb, rmse_rf, score_xgb, score_rf, rmse_baseline, score_baseline):
+
     # Uporedni bar chart RMSE i NASA Score za sva tri modela: Baseline, XGBoost, Random Forest.
     # RMSE grafik: manji stub = preciznije predvidjanje u proseku
     # NASA Score grafik: manji stub = manje kumulativne kazne (posebno za kasna predvidjanja)
     # Ocekivano: XGBoost i Random Forest daleko ispod baseline-a po oba kriterijuma.
     # Baseline vrednosti su dinamicki izracunate (nisu hardkodovane) da grafik uvek
     # prikazuje tacne vrednosti bez obzira na promene u podacima.
+    
     fig, axs = plt.subplots(1, 2, figsize=(12, 5))
     fig.suptitle('Poredjenje modela', fontsize=14)
 
